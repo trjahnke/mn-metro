@@ -8,3 +8,7 @@ venv
 
 # Visual Studio Code
 .vscode
+.DS_Store
+
+# Other
+csv_trans_transit
