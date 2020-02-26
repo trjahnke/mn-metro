@@ -9,7 +9,7 @@ headers = {
     "Accept": "application/json",
 }
 
-base_url = f"http://svc.metrotransit.org/NexTrip/"
+base_url = "http://svc.metrotransit.org/NexTrip/"
 
 pp = pprint.PrettyPrinter(indent=4)
 
