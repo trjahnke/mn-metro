@@ -6,7 +6,7 @@
 - [Setup](#setup)
 - [Functions](#functions)
 - [Release Notes](#release-notes)
-- [License](#license)
+- [License](LICENSE.md)
 
 <!-- toc -->
 
