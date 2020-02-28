@@ -1,5 +1,6 @@
 import json
 import pprint
+import sys
 
 import requests
 
@@ -18,23 +19,64 @@ class GetProviders(object):
     def __init__(self):
         self.name = "Providers"
 
-    def info(self):
-        r = requests.get(url=f"{base_url}{self.name}", headers=headers)
-        return r.text
+    def all_providers(self):
+        try:
+            data = requests.get(url=f"{base_url}{self.name}", headers=headers).json()
+        except requests.exceptions.RequestException as e:
+            print(e)
+            sys.exit(1)
 
-    # add one where it returns a list of all routes by provider
+        providers = {}
+
+        for provider in data:
+            providers[int(provider['Value'])] = provider['Text']
+
+        return pp.pprint(providers)
+
+    
+    def provider_for(self, id=None, name=None):
+        if all(value is None for value in {name, id}):
+            raise ValueError("Expected either 'name' or 'id' for provider.")
+        elif all(value is not None for value in {name, id}):
+            raise ValueError("Expected either 'name' or 'id' for provider, not both.")
+
+        providers = self.all_providers()
+
+        if id is not None:
+            if id in providers.keys():
+                return providers[id]         
+            else:
+                raise ValueError(f"There is no provider named {name} in the providers available.")
+        else:
+            if name in providers.values():
+                for key, value in providers.items():
+                    if value == name:
+                        return key
+            else:
+                raise ValueError(f"There is no provider id {id} in the providers available.")
 
 
 class GetRoutes(object):
     def __init__(self):
         self.name = "Routes"
-        self.r = requests.get(url=f"{base_url}{self.name}", headers=headers).json() # I don't know if I want to call this in every instance under or keep it here, for here it will stay until I figure that out
 
     def all_routes(self):
-        return pp.pprint(self.r)
+        try:
+            r = requests.get(url=f"{base_url}{self.name}", headers=headers).json()
+        except requests.exceptions.RequestException as e:
+            print(e)
+            sys.exit(1)
+
+        return pp.pprint(r)
 
     def route_ids(self):
-        data = self.r.json()
+        try:
+            r = requests.get(url=f"{base_url}{self.name}", headers=headers).json()
+        except requests.exceptions.RequestException as e:
+            print(e)
+            sys.exit(1)
+
+        data = r.json()
         route_ids = []
 
         for route in data:

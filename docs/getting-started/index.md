@@ -4,7 +4,7 @@
 - [Installation](#installation)
     + [Development](#development)
 - [Setup](#setup)
-- [Functions](#functions)
+- [Functions](/inner-workings/functions)
 - [Release Notes](#release-notes)
 - [License](LICENSE.md)
 
@@ -23,24 +23,9 @@ $ pip install mnmetro
 To be add when setup. Otherwise PR's are always welcome.
 
 ## Setup
-All you have to do to start using mnmetro is import it. [Then checkout the objects you can initialize!](#functions)
+All you have to do to start using mnmetro is import it. [Then checkout the objects you can initialize!](/inner-workings/functions)
 ```python
 import mnmetro
-```
-
-## Functions
-There are seven object classes so far each with their own functions. In order to use whatever function that is needed you first need to intialize its parent class object ie:
-```python
-import mnmetro
-...
-providers = GetProviders()
-routes = GetRoutes()
-directions = GetDirections()
-providers = GetStops()
-departures = GetDepartures()
-timepoints = GetTimepointDepartures()
-locations = GetVechicleLocations()
-...
 ```
 
 ## Release Notes

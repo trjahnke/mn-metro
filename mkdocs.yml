@@ -1,2 +1,5 @@
 site_name: mnmetro
-theme: readthedocs
+theme:
+  name: readthedocs
+  highlightjs: true
+  prev_next_buttons_location: both
