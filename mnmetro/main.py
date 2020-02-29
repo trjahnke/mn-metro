@@ -14,8 +14,19 @@ base_url = "http://svc.metrotransit.org/NexTrip/"
 
 pp = pprint.PrettyPrinter(indent=4)
 
+direction_value = {
+    1: "Southbound",
+    2: "Eastbound",
+    3: "Westbound",
+    4: "Northbound"
+}
+
 
 class GetProviders(object):
+    """
+    From the API docs: Returns a list of area Transit providers. Providers are identified in the list of Routes allowing routes to be selected for a single provider.
+    """
+
     def __init__(self):
         self.name = "Providers"
 
@@ -57,6 +68,10 @@ class GetProviders(object):
 
 
 class GetRoutes(object):
+    """
+    From the API docs: Returns a list of Transit routes that are in service on the current day.
+    """
+
     def __init__(self):
         self.name = "Routes"
 
@@ -67,7 +82,18 @@ class GetRoutes(object):
             print(e)
             sys.exit(1)
 
-        return pp.pprint(r)
+        data = []
+
+        # Force the ID's for provider and route to be ints not str
+        for route in r:
+            data.append({
+                "Description":route["Description"],
+                "ProviderID":int(route["ProviderID"]),
+                "Route":int(route["Route"])
+            })
+
+
+        return pp.pprint(data)
 
     def route_ids(self):
         try:
@@ -76,66 +102,112 @@ class GetRoutes(object):
             print(e)
             sys.exit(1)
 
-        data = r.json()
         route_ids = []
 
-        for route in data:
-            route_ids.append(route["Route"])
+        for route in r:
+            route_ids.append(int(route["Route"]))
+
+        route_ids.sort()
 
         return pp.pprint(route_ids)
 
-    def route(self, route_id):
+    def route_for(self, route_id):
         if not hasattr(route_id, "__pow__"):
             raise TypeError(f"{type(route_id)} is an unsupported operand. Should be an int.")
 
-        for item in self.all_routes():
-            if int(item["Route"]) == route_id:
-                return item
+        try:
+            r = requests.get(url=f"{base_url}{self.name}", headers=headers).json()
+        except requests.exceptions.RequestException as e:
+            print(e)
+            sys.exit(1)
+
+        data = []
+
+        # Force the ID's for provider and route to be ints not str
+        for route in r:
+            data.append({
+                "Description":route["Description"],
+                "ProviderID":int(route["ProviderID"]),
+                "Route":int(route["Route"])
+            })
+
+        for item in data:
+            if item["Route"] == route_id:
+                return pp.pprint(item)
         return f"The provided route_id: {route_id} does not appear in the Routes."
 
 
 class GetDirections(object):
-    """
-    From the API docs: Returns the two directions that are valid for a given route. Either North/South or East/West. The result includes text/value pair with the direction name and an ID. Directions are identified with an ID value. 1 = South, 2 = East, 3 = West, 4 = North.
-
-    """
-
     def __init__(self):
         self.name = "Directions"
     
-    def direction_of(self, route_id):
+    def direction_for(self, route_id):
         if not hasattr(route_id, "__pow__"):
             raise TypeError(f"{type(route_id)} is an unsupported operand. Should be an int.")
 
-        self.route_id = int(route_id)
+        data = requests.get(url=f"{base_url}{self.name}/{route_id}", headers=headers).json()
 
-        return pp.pprint(requests.get(url=f"{base_url}{self.name}/{self.route_id}", headers=headers).json())
+        if len(data) != 0:
+            directions = {
+                data[0]["Text"]:int(data[0]["Value"]),
+                data[1]["Text"]:int(data[1]["Value"])
+            }
+        else:
+            raise ValueError(f"{route_id} is not a valid Route ID.")
+        
+        return pp.pprint(directions)
 
 
 class GetStops(object):
-    """
-    From the API docs: Returns a list of Timepoint stops for the given Route/Direction. The result includes text/value pairs with the stop description and a 4 character stop (or node) identifier.
-
-    # Adjust to be able to pass a list of route_ids and or directions
-    """
     def __init__(self):
         self.name = "Stops"
 
-    def stops_for(self, route_id, direction):
-        """
-        Maybe look into, if direction returns empty array showing available options for direction
+    def full_stops_for(self, route_id):
+        if not hasattr(route_id, "__pow__"):
+            raise TypeError(f"{type(route_id)} is an unsupported operand. Should be an int.")
 
-        # I think we should adjust this to use directions as strings instead of ints
-        """
-        self.route_id = route_id
-        self.direction = direction
+        data = requests.get(url=f"{base_url}Directions/{route_id}", headers=headers).json()
 
-        data = requests.get(url=f"{base_url}{self.name}/{self.route_id}/{self.direction}", headers=headers).json()
-
-        if len(data) == 0:
-            raise Exception(f"Looks to be an incorrect direction({self.direction}) or route_id({self.route_id})")
+        if len(data) != 0:
+            directions = {
+                data[0]["Text"]:int(data[0]["Value"]),
+                data[1]["Text"]:int(data[1]["Value"])
+            }
         else:
-            return pp.pprint(data)
+            raise ValueError(f"{route_id} is not a valid Route ID.")
+
+        total_stops = {}
+
+        for item in directions.values():
+            data = requests.get(url=f"{base_url}{self.name}/{route_id}/{item}", headers=headers).json()
+
+            if len(data) != 0:
+                stops_dict = {}
+                
+                for stops in data:
+                    stops_dict[stops["Text"]] = stops["Value"]
+        
+                temp_value = stops_dict
+            else:
+                raise Exception(f"Looks to be an incorrect direction({self.direction}) or route_id({self.route_id})")
+
+
+            total_stops[direction_value[item]] = temp_value
+
+        return pp.pprint(total_stops)
+
+    def stops_for(self, route_id, direction):
+        data = requests.get(url=f"{base_url}{self.name}/{route_id}/{direction}", headers=headers).json()
+
+        if len(data) != 0:
+            stops_dict = {}
+            
+            for stops in data:
+                stops_dict[stops["Text"]] = stops["Value"]
+    
+            return pp.pprint(stops_dict)
+        else:
+            raise Exception(f"Looks to be an incorrect direction({self.direction}) or route_id({self.route_id})")
 
 
 class GetDepartures(object):
@@ -158,22 +230,18 @@ class GetDepartures(object):
 
 
 class GetTimepointDepartures(object):
-    """
-    From the API docs: Returns the scheduled departures for a selected route, direction and timepoint stop.
-    """
-
     def __init__(self):
         pass
 
-    def times_for(self, route_id, direction, stop_id):
+    def times_for(self, route_id, direction, stop_node):
         self.route_id = route_id
         self.direction = direction
-        self.stop_id = stop_id
+        self.node_id = node_id
 
-        data = requests.get(url=f"{base_url}{self.route_id}/{self.direction}/{self.stop_id}", headers=headers).json()
+        data = requests.get(url=f"{base_url}{self.route_id}/{self.direction}/{self.node_id}", headers=headers).json()
 
         if len(data) == 0:
-            raise Exception(f"Looks to be an incorrect direction({self.direction}) or route_id({self.route_id}) and or stop_id({self.stop_id})")
+            raise Exception(f"Looks to be an incorrect direction({self.direction}) or route_id({self.route_id}) and or node_id({self.node_id})")
         else:
             return pp.pprint(data)
 
