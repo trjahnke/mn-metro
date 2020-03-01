@@ -1,9 +1,7 @@
 import json
-import pprint
 import sys
 
 import requests
-
 
 headers = {
     "Content-Type": "application/json",
@@ -11,8 +9,6 @@ headers = {
 }
 
 base_url = "http://svc.metrotransit.org/NexTrip/"
-
-pp = pprint.PrettyPrinter(indent=4)
 
 direction_value = {
     1: "Southbound",
@@ -42,7 +38,7 @@ class GetProviders(object):
         for provider in data:
             providers[int(provider['Value'])] = provider['Text']
 
-        return pp.pprint(providers)
+        return providers
 
     
     def provider_for(self, id=None, name=None):
@@ -93,47 +89,37 @@ class GetRoutes(object):
             })
 
 
-        return pp.pprint(data)
+        return data
 
     def route_ids(self):
         try:
-            r = requests.get(url=f"{base_url}{self.name}", headers=headers).json()
+            data = self.all_routes()
         except requests.exceptions.RequestException as e:
             print(e)
             sys.exit(1)
 
         route_ids = []
 
-        for route in r:
-            route_ids.append(int(route["Route"]))
+        for route in data:
+            route_ids.append(route["Route"])
 
         route_ids.sort()
 
-        return pp.pprint(route_ids)
+        return route_ids
 
     def route_for(self, route_id):
         if not hasattr(route_id, "__pow__"):
             raise TypeError(f"{type(route_id)} is an unsupported operand. Should be an int.")
 
         try:
-            r = requests.get(url=f"{base_url}{self.name}", headers=headers).json()
+            data = self.all_routes()
         except requests.exceptions.RequestException as e:
             print(e)
             sys.exit(1)
 
-        data = []
-
-        # Force the ID's for provider and route to be ints not str
-        for route in r:
-            data.append({
-                "Description":route["Description"],
-                "ProviderID":int(route["ProviderID"]),
-                "Route":int(route["Route"])
-            })
-
         for item in data:
             if item["Route"] == route_id:
-                return pp.pprint(item)
+                return item
         return f"The provided route_id: {route_id} does not appear in the Routes."
 
 
@@ -155,7 +141,7 @@ class GetDirections(object):
         else:
             raise ValueError(f"{route_id} is not a valid Route ID.")
         
-        return pp.pprint(directions)
+        return directions
 
 
 class GetStops(object):
@@ -166,19 +152,11 @@ class GetStops(object):
         if not hasattr(route_id, "__pow__"):
             raise TypeError(f"{type(route_id)} is an unsupported operand. Should be an int.")
 
-        data = requests.get(url=f"{base_url}Directions/{route_id}", headers=headers).json()
-
-        if len(data) != 0:
-            directions = {
-                data[0]["Text"]:int(data[0]["Value"]),
-                data[1]["Text"]:int(data[1]["Value"])
-            }
-        else:
-            raise ValueError(f"{route_id} is not a valid Route ID.")
+        data = GetDirections().direction_for(route_id)
 
         total_stops = {}
 
-        for item in directions.values():
+        for item in data.values():
             data = requests.get(url=f"{base_url}{self.name}/{route_id}/{item}", headers=headers).json()
 
             if len(data) != 0:
@@ -191,10 +169,9 @@ class GetStops(object):
             else:
                 raise Exception(f"Looks to be an incorrect direction({self.direction}) or route_id({self.route_id})")
 
-
             total_stops[direction_value[item]] = temp_value
 
-        return pp.pprint(total_stops)
+        return total_stops
 
     def stops_for(self, route_id, direction):
         data = requests.get(url=f"{base_url}{self.name}/{route_id}/{direction}", headers=headers).json()
@@ -205,7 +182,7 @@ class GetStops(object):
             for stops in data:
                 stops_dict[stops["Text"]] = stops["Value"]
     
-            return pp.pprint(stops_dict)
+            return stops_dict
         else:
             raise Exception(f"Looks to be an incorrect direction({self.direction}) or route_id({self.route_id})")
 
@@ -226,14 +203,14 @@ class GetDepartures(object):
         if len(data) == 0:
             raise Exception(f"Looks to be an incorrect direction({self.direction}) or route_id({self.route_id})")
         else:
-            return pp.pprint(data)
+            return data
 
 
 class GetTimepointDepartures(object):
     def __init__(self):
         pass
 
-    def times_for(self, route_id, direction, stop_node):
+    def times_for(self, route_id, direction, node_id):
         self.route_id = route_id
         self.direction = direction
         self.node_id = node_id
@@ -243,7 +220,7 @@ class GetTimepointDepartures(object):
         if len(data) == 0:
             raise Exception(f"Looks to be an incorrect direction({self.direction}) or route_id({self.route_id}) and or node_id({self.node_id})")
         else:
-            return pp.pprint(data)
+            return data
 
 
 class GetVehicleLocations(object):
@@ -256,8 +233,8 @@ class GetVehicleLocations(object):
         self.route_id = 0
 
     def all_vehicles(self):
-        return pp.pprint(requests.get(url=f"{base_url}{self.name}/{self.route_id}", headers=headers).json())
+        return requests.get(url=f"{base_url}{self.name}/{self.route_id}", headers=headers).json()
 
     def location_for(self, route_id):
         self.route_id = route_id
-        return pp.pprint(requests.get(url=f"{base_url}{self.name}/{self.route_id}", headers=headers).json())
+        return requests.get(url=f"{base_url}{self.name}/{self.route_id}", headers=headers).json()
