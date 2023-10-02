@@ -33,12 +33,7 @@ class GetProviders(object):
             print(e)
             sys.exit(1)
 
-        providers = {}
-
-        for provider in data:
-            providers[int(provider['Value'])] = provider['Text']
-
-        return providers
+        return {int(provider['Value']): provider['Text'] for provider in data}
 
     
     def provider_for(self, id=None, name=None):
@@ -49,18 +44,17 @@ class GetProviders(object):
 
         providers = self.all_providers()
 
-        if id is not None:
-            if id in providers.keys():
-                return providers[id]         
-            else:
-                raise ValueError(f"There is no provider named {name} in the providers available.")
-        else:
-            if name in providers.values():
-                for key, value in providers.items():
-                    if value == name:
-                        return key
-            else:
+        if id is None:
+            if name not in providers.values():
                 raise ValueError(f"There is no provider id {id} in the providers available.")
+
+            for key, value in providers.items():
+                if value == name:
+                    return key
+        elif id in providers.keys():
+            return providers[id]
+        else:
+            raise ValueError(f"There is no provider named {name} in the providers available.")
 
 
 class GetRoutes(object):
@@ -78,18 +72,11 @@ class GetRoutes(object):
             print(e)
             sys.exit(1)
 
-        data = []
-
-        # Force the ID's for provider and route to be ints not str
-        for route in r:
-            data.append({
+        return [{
                 "Description":route["Description"],
                 "ProviderID":int(route["ProviderID"]),
                 "Route":int(route["Route"])
-            })
-
-
-        return data
+            } for route in r]
 
     def route_ids(self):
         try:
@@ -98,10 +85,7 @@ class GetRoutes(object):
             print(e)
             sys.exit(1)
 
-        route_ids = []
-
-        for route in data:
-            route_ids.append(route["Route"])
+        route_ids = [route["Route"] for route in data]
 
         route_ids.sort()
 
@@ -159,16 +143,12 @@ class GetStops(object):
         for item in data.values():
             data = requests.get(url=f"{base_url}{self.name}/{route_id}/{item}", headers=headers).json()
 
-            if len(data) != 0:
-                stops_dict = {}
-                
-                for stops in data:
-                    stops_dict[stops["Text"]] = stops["Value"]
-        
-                temp_value = stops_dict
-            else:
+            if len(data) == 0:
                 raise Exception(f"Looks to be an incorrect direction({self.direction}) or route_id({self.route_id})")
 
+            stops_dict = {stops["Text"]: stops["Value"] for stops in data}
+
+            temp_value = stops_dict
             total_stops[direction_value[item]] = temp_value
 
         return total_stops
@@ -177,12 +157,7 @@ class GetStops(object):
         data = requests.get(url=f"{base_url}{self.name}/{route_id}/{direction}", headers=headers).json()
 
         if len(data) != 0:
-            stops_dict = {}
-            
-            for stops in data:
-                stops_dict[stops["Text"]] = stops["Value"]
-    
-            return stops_dict
+            return {stops["Text"]: stops["Value"] for stops in data}
         else:
             raise Exception(f"Looks to be an incorrect direction({self.direction}) or route_id({self.route_id})")
 
