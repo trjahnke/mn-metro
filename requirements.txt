@@ -4,5 +4,5 @@ mkdocs==1.2.3
 pprintpp==0.4.0
 pytest==5.3.5
 pytest-cov==2.8.1
-requests==2.31.0
+requests==2.32.0
 twine==3.1.1
